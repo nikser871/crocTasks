@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * Модель-результат для хранения статистик (количество, максимум)
+ * Сущность транзакции
  *
  * @param type Тип транзакции
  * @param date Дата соверщения транзакции
