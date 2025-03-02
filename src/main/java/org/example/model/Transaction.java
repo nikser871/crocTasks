@@ -9,7 +9,7 @@ import java.time.LocalDate;
  * Сущность транзакции
  *
  * @param type Тип транзакции
- * @param date Дата соверщения транзакции
+ * @param date Дата совершения транзакции
  * @param sum Сумма транзакции
  */
 public record Transaction(TransactionType type,

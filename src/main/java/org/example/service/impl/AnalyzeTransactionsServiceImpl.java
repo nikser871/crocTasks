@@ -5,12 +5,12 @@ import org.example.model.Transaction;
 import org.example.service.AnalyzeTransactionsService;
 import org.example.service.enums.TransactionType;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Formatter;
 import java.util.List;
 
 import static java.util.Objects.nonNull;
@@ -31,61 +31,63 @@ public class AnalyzeTransactionsServiceImpl implements AnalyzeTransactionsServic
     }
 
     @Override
-    public void analyzeTransactions(String filePath) {
-        List<Transaction> transactions = transactionDAO.readTransactions(filePath);
+    public void analyzeTransactions(InputStream inputStream) {
+        List<Transaction> transactions = transactionDAO.readTransactions(inputStream);
 
-        printCountOfTransactions(transactions);
-        printCountAverageFromTransactions(transactions);
+        System.out.println(COUNT_OF_TRANSACTION);
+        printInformationFromStatistics(getCountOfTransactions(transactions));
+
+        System.out.println(AVERAGE_SUM);
+        printInformationFromStatistics(getCountOfTransactions(transactions));
+
         printDateOfMaxSumOfTransaction(transactions, DEBIT);
-        printUniqueDateTransactions(transactions);
+
+        System.out.println(UNIQUE_DATES_OF_TRANSACTIONS);
+        printInformationFromStatistics(getUniqueDateTransactions(transactions));
     }
 
     /**
      * Вывод стат. данных для первого блока (Количество)
      * @param transactions транзакции
      */
-    private void printCountOfTransactions(List<Transaction> transactions) {
-        System.out.println(COUNT_OF_TRANSACTION);
-        Arrays.stream(TransactionType.values())
-                .forEach(type -> printCountOfTransactions(transactions,type));
-
-        System.out.println();
+    private List<String> getCountOfTransactions(List<Transaction> transactions) {
+        return Arrays.stream(TransactionType.values())
+                .map(type -> getCountOfTransactions(transactions,type))
+                .toList();
     }
 
     /**
      * Вывод стат. данных для первого блока (Количество)
      */
-    private void printCountOfTransactions(List<Transaction> transactions, TransactionType type) {
+    private String getCountOfTransactions(List<Transaction> transactions, TransactionType type) {
         long count = transactions.stream()
                 .filter(transaction -> transaction.type().equals(type))
                 .count();
 
-        System.out.println("- " + type.getValue() + ": " + count);
+        return "- " + type.getValue() + ": " + count;
     }
 
     /**
      * Вывод стат. данных для второго блока (Средняя сумма для каждого типа)
      * @param transactions транзакции
      */
-    private void printCountAverageFromTransactions(List<Transaction> transactions) {
-        System.out.println(AVERAGE_SUM);
-        Arrays.stream(TransactionType.values())
-                .forEach(type -> printCountAverageFromTransactions(transactions,type));
-
-        System.out.println();
+    private List<String> getCountAverageFromTransactions(List<Transaction> transactions) {
+        return Arrays.stream(TransactionType.values())
+                .map(type -> getCountAverageFromTransactions(transactions,type))
+                .toList();
     }
 
     /**
      *  Вывод стат. данных для второго блока (Средняя сумма для каждого типа)
      */
-    private void printCountAverageFromTransactions(List<Transaction> transactions, TransactionType type) {
+    private String getCountAverageFromTransactions(List<Transaction> transactions, TransactionType type) {
         BigDecimal average = BigDecimal.valueOf(transactions.stream()
                 .filter(transaction -> transaction.type().equals(type))
                 .map(Transaction::sum)
-                .mapToDouble(big -> big.doubleValue())
-                .average().orElse(0.0));
+                .mapToDouble(BigDecimal::doubleValue)
+                .average().orElseThrow());
 
-        System.out.println("- " + type.getValue() + ": " + average);
+        return "- " + type.getValue() + ": " + average;
     }
 
     /**
@@ -93,27 +95,38 @@ public class AnalyzeTransactionsServiceImpl implements AnalyzeTransactionsServic
      * @param transactions транзакции
      */
     private void printDateOfMaxSumOfTransaction(List<Transaction> transactions, TransactionType type) {
-        System.out.print(DAY_WITH_BIG_SUM + " (" + type.getValue() + "): ");
+        printDateOfMaxSumOfTransaction(type);
         LocalDate date = transactions.stream()
                 .filter(transaction -> nonNull(transaction) && transaction.type().equals(type))
                 .max(Comparator.comparing(Transaction::sum))
                 .get().date();
 
-        System.out.println(date.format(DATE));
-        System.out.println();
+        System.out.println(date.format(DATE) + "\n");
+    }
+
+    private void printDateOfMaxSumOfTransaction(TransactionType type) {
+        System.out.print(DAY_WITH_BIG_SUM + " (" + type.getValue() + "): ");
     }
 
     /**
      * Выводит список уникальных дат для транзакций
      * @param transactions Транзакции
      */
-    private void printUniqueDateTransactions(List<Transaction> transactions) {
-        System.out.println(UNIQUE_DATES_OF_TRANSACTIONS);
-        transactions.stream()
+    private List<String> getUniqueDateTransactions(List<Transaction> transactions) {
+        return transactions.stream()
                 .map(Transaction::date)
                 .distinct()
                 .sorted(Comparator.reverseOrder())
-                .forEach(date ->  System.out.println("- " + date.format(DATE)));
+                .map(date -> "- " + date.format(DATE))
+                .toList();
+    }
+
+    /**
+     * @param results результаты после анализа транзазакций для определенного блока
+     */
+    private void printInformationFromStatistics(List<String> results) {
+        results.forEach(System.out::println);
+        System.out.println();
     }
 
 
