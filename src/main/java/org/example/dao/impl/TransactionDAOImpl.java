@@ -1,87 +1,53 @@
 package org.example.dao.impl;
 
 import org.example.dao.TransactionDAO;
+import org.example.mapper.Mapper;
 import org.example.model.Transaction;
-import org.example.service.enums.TransactionType;
-import org.example.utils.DateValidatorUtil;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class TransactionDAOImpl implements TransactionDAO {
 
+    private final Mapper<Transaction, String[]> mapper;
+
+    public TransactionDAOImpl(Mapper<Transaction, String[]> mapper) {
+        this.mapper = mapper;
+    }
+
     @Override
-    public List<Transaction> readTransactions(String filePath) {
-        return translateDataFromStrings(getTransactions(filePath));
+    public List<Transaction> readTransactions(InputStream inputStream) {
+        return getTransactions(inputStream).stream()
+                .map(mapper::toEntity)
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     /**
      * Метод для получения данных из транзакций
-     * @param filePath
+     *
+     * @param inputStream
      * @return массив полученных данных из файла
      */
-    private List<String[]> getTransactions(String filePath) {
+    private List<String[]> getTransactions(InputStream inputStream) {
         List<String[]> transactions = new ArrayList<>();
 
-        try (FileReader reader = new FileReader(filePath);
-             BufferedReader bufferedReader = new BufferedReader(reader)) {
+        try (InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+             BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
 
-            while (bufferedReader.ready()) {
-                String line = bufferedReader.readLine();
-                String[] transaction = line.split(",");
-                transactions.add(transaction);
-            }
+            bufferedReader.lines().forEach(line -> {
+                String[] split = line.split(",");
+                transactions.add(split);
+            });
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Произошла ошибка при попытке получить данные из файла ", e);
         }
 
         return transactions;
-    }
-
-    /**
-     * Метод позволяет перенести данные из файла в сущности
-     * @param transactions массив данных из транзакций
-     * @return Массив, состоящий из моделек-статистик для каждого вида транзакций
-     */
-    private List<Transaction> translateDataFromStrings(List<String[]> transactions) {
-        List<Transaction> results = new ArrayList<>();
-
-        for (String[] transaction : transactions) {
-            Transaction t = getTransactionFromString(transaction);
-
-            if (t != null) {
-                results.add(t);
-            }
-        }
-
-        return results;
-    }
-
-    /**
-     * Получить сущность транзакции
-     * @param transaction одна строка из файла с данными
-     * @return
-     */
-    private Transaction getTransactionFromString(String[] transaction) {
-        String date = transaction[1];
-        String transactionType = transaction[2];
-        String amount = transaction[3];
-
-        if (       date != null
-                && transactionType != null
-                && amount != null
-                && DateValidatorUtil.isValidDate(date)) {
-            LocalDate dateOfTransaction = LocalDate.parse(date);
-            TransactionType type = TransactionType.valueOf(transactionType);
-            BigDecimal sum = new BigDecimal(amount);
-            return new Transaction(type, dateOfTransaction, sum);
-        } else {
-            return null;
-        }
     }
 }

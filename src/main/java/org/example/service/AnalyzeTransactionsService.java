@@ -1,5 +1,7 @@
 package org.example.service;
 
+import java.io.InputStream;
+
 /**
  * Интерфейс Анализа транзакций
  */
@@ -8,8 +10,8 @@ public interface AnalyzeTransactionsService  {
     /**
      * Данный метод принимает путь к файлу
      * и делает анализ данных с последующим выводом в консоль
-     * @param filePath путь к файлу
+     * @param inputStream поток
      */
-    void analyzeTransactions(String filePath);
+    void analyzeTransactions(InputStream inputStream);
 
 }
